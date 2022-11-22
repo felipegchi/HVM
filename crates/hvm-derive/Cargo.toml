@@ -1,0 +1,22 @@
+[package]
+name = "hvm-derive"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+proc-macro = true
+
+[dependencies]
+
+hvm-syntax = { path = "../hvm-syntax" }
+hvm-runtime = { path = "../hvm-runtime" }
+hvm-parser = { path = "../hvm-parser" }
+
+itertools = "0.10"
+
+proc-macro-error = "*"
+proc-macro2 = "*"
+quote = "*"
+syn = { version = "*", features = ["extra-traits"] }

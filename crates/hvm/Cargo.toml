@@ -1,0 +1,28 @@
+[package]
+name = "hvm"
+version = "1.0.1-beta"
+edition = "2021"
+description = "A massively parallel functional runtime."
+repository = "https://github.com/Kindelia/HVM"
+license = "MIT"
+keywords = ["functional", "language", "runtime", "compiler", "target"]
+categories = ["compilers"]
+
+[[bin]]
+name = "hvm"
+test = false
+
+[features]
+compiler = []
+derive = ["dep:hvm-derive"]
+parser = []
+
+[dependencies]
+clap = { version = "3.1.8", features = ["derive"] }
+
+hvm-derive = { path = "../hvm-derive", optional = true }
+hvm-syntax = { path = "../hvm-syntax" }
+hvm-parser = { path = "../hvm-parser" }
+hvm-compiler = { path = "../hvm-compiler" }
+hvm-runtime = { path = "../hvm-runtime" }
+

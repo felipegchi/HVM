@@ -1,0 +1,28 @@
+[package]
+name = "hvm-runtime"
+version = "1.0.1-beta"
+edition = "2021"
+description = "A massively parallel functional runtime."
+repository = "https://github.com/Kindelia/HVM"
+license = "MIT"
+keywords = ["functional", "language", "runtime", "compiler", "target"]
+categories = ["compilers"]
+
+[lib]
+test = true
+crate-type = ["cdylib", "rlib"]
+
+
+[dependencies]
+hvm-syntax = { path = "../hvm-syntax" }
+hvm-parser = { path = "../hvm-parser" }
+
+sysinfo = "0.26.7"
+crossbeam = "0.8.2"
+highlight_error = "0.1.1"
+instant = { version = "0.1", features = [ "wasm-bindgen", "inaccurate" ] }
+itertools = "0.10"
+im = "15.1.0"
+
+[dev-dependencies]
+hvm-parser = { path = "../hvm-parser" }
