@@ -1,4 +1,3 @@
-use crate::Funs;
 use crate::Precomp;
 use crate::language;
 use crate::runtime;
@@ -44,6 +43,47 @@ pub fn eval(
   // Normalizes it
   let init = instant::Instant::now();
   runtime::normalize(&heap, &prog, &tids, host, dbug);
+  let time = init.elapsed().as_millis() as u64;
+
+  // Reads it back to a string
+  let code = format!("{}", language::readback::as_term(&heap, &prog, host));
+
+  // Frees used memory
+  runtime::collect(&heap, &prog.arit, tids[0], runtime::load_ptr(&heap, host));
+  runtime::free(&heap, 0, 0, 1);
+
+  // Returns the result, rewrite cost and time elapsed
+  Ok((code, runtime::get_cost(&heap), time))
+}
+
+// Evaluates a HVM term to normal form
+pub fn eval_main_default(
+  file: hvm_syntax::File,
+) -> Result<(String, u64, u64), String> {
+
+  // Converts the file to a Rulebook
+  let book = language::rulebook::gen_rulebook(&file, &[]);
+
+  // Creates the runtime program
+  let mut prog = runtime::Program::new(&[]);
+
+  let begin = instant::Instant::now();
+
+  // Adds the interpreted functions (from the Rulebook)
+  prog.add_book(&book);
+
+
+  // Creates the runtime heap
+  let heap = runtime::new_heap(runtime::default_heap_size(), runtime::default_heap_tids());
+  let tids = runtime::new_tids(runtime::default_heap_tids());
+
+  // Allocates the main term
+  runtime::link(&heap, 0, runtime::Fun(*book.name_to_id.get("Main").unwrap(), 0));
+  let host = 0;
+
+  // Normalizes it
+  let init = instant::Instant::now();
+  runtime::normalize(&heap, &prog, &tids, host, false);
   let time = init.elapsed().as_millis() as u64;
 
   // Reads it back to a string

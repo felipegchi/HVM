@@ -46,6 +46,7 @@ pub const HVM_PRINT : u64 = 26;
 pub const HVM_SLEEP : u64 = 27;
 pub const HVM_STORE : u64 = 28;
 pub const HVM_LOAD : u64 = 29;
+
 //[[CODEGEN:PRECOMP-IDS]]//
 
 pub const PRECOMP : &[Precomp] = &[
@@ -172,13 +173,13 @@ pub const PRECOMP : &[Precomp] = &[
   Precomp {
     id: KIND_TERM_U60,
     name: "Kind.Term.u60",
-    arity: 2,
+    arity: 1,
     funcs: None,
   },
   Precomp {
     id: KIND_TERM_F60,
     name: "Kind.Term.f60",
-    arity: 2,
+    arity: 1,
     funcs: None,
   },
   Precomp {

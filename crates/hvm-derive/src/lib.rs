@@ -43,14 +43,15 @@ fn build_name(name: &str) -> String {
   format!("_{}_", name)
 }
 
-fn get_var(var: &runtime::RuleVar) -> String {
+fn get_var(span: Span, var: &runtime::RuleVar) -> proc_macro2::TokenStream {
   let runtime::RuleVar { param, field, erase: _ } = var;
+  let param_ident = syn::Ident::new(&format!("arg{}", param), span);
   match field {
     Some(i) => {
-      format!("load_arg(ctx.heap, arg{}, {})", param, i)
+      quote! { load_arg(ctx.heap, #param_ident, #i) }
     }
     None => {
-      format!("arg{}", param)
+      quote! { #param_ident }
     }
   }
 }
@@ -199,7 +200,7 @@ fn build_function(
       let mut collect = Vec::new();
       for dynvar @ runtime::RuleVar { param: _, field: _, erase } in rule.vars.iter() {
         if *erase {
-          let var = get_var(dynvar);
+          let var = get_var(span, dynvar);
           collect.push(quote! {
             collect(ctx.heap, &ctx.prog.arit, ctx.tid, #var);
           })
@@ -402,8 +403,8 @@ fn build_function_rule_rhs(
 
         inside.push(quote! {
           link(ctx.heap, #name_ident + 2u64, #copy_ident);
-          dup0_ident = Dp0(#coln_ident, #name_ident);
-          dup1_ident = Dp1(#coln_ident, #name_ident);
+          #dup0_ident = Dp0(#coln_ident, #name_ident);
+          #dup1_ident = Dp1(#coln_ident, #name_ident);
         });
 
         if INLINE_NUMBERS {
@@ -532,10 +533,10 @@ fn build_function_rule_rhs(
             if get_tag(#arg0) == U60 {
               inc_cost(ctx.heap, ctx.tid);
               if get_num(#arg0) == 0 {
-                collect(ctx.heap, &ctx.prog.arit, ctx.tid, {});
+                collect(ctx.heap, &ctx.prog.arit, ctx.tid, #arg1);
                 #ret_ident = #arg2;
               } else {
-                collect(ctx.heap, &ctx.prog.arit, ctx.tid, {});
+                collect(ctx.heap, &ctx.prog.arit, ctx.tid, #arg2);
                 #ret_ident = #arg1;
               }
             } else {
@@ -617,10 +618,10 @@ fn build_function_rule_rhs(
         }
       }
       U6O { numb } => {
-        quote! { U60 (#numb) }
+        quote! { U6O (#numb) }
       }
       F6O { numb } => {
-        quote! { F60 (#numb) }
+        quote! { F6O (#numb) }
       }
       Op2 { oper, val0, val1 } => {
         let retx_ident = syn::Ident::new(&fresh(nams, "ret"), span);
@@ -632,12 +633,12 @@ fn build_function_rule_rhs(
           let #retx_ident;
         });
 
-        let op = match *oper {
+        let op = |quoted| match *oper {
           runtime::ADD => "add",
           runtime::SUB => "sub",
           runtime::MUL => "mul",
           runtime::DIV => "div",
-          runtime::MOD => "mdl",
+          runtime::MOD => if quoted { "mdl" } else { "mod" },
           runtime::AND => "and",
           runtime::OR => "or",
           runtime::XOR => "xor",
@@ -652,9 +653,9 @@ fn build_function_rule_rhs(
           _ => panic!(),
         };
 
-        let op_u60_ident = syn::Ident::new(&format!("u60::{}", op), span);
-        let op_f60_ident = syn::Ident::new(&format!("u60::{}", op), span);
-        let oper_name = op.to_uppercase();
+        let op_ident = syn::Ident::new(&format!("{}", op(true)), span);
+        let op_name_ident = syn::Ident::new(&format!("{}", op(false).to_uppercase()), span);
+
         let a = quote! { get_num(#val0) };
         let b = quote! { get_num(#val1) };
 
@@ -662,16 +663,16 @@ fn build_function_rule_rhs(
           let #name_ident = alloc(ctx.heap, ctx.tid, 2);
             link(ctx.heap, #name_ident + 0u64, #val0);
             link(ctx.heap, #name_ident + 1u64, #val1);
-            #retx_ident = Op2(#oper_name, #name_ident);
+            #retx_ident = Op2(#op_name_ident, #name_ident);
         };
 
         if INLINE_NUMBERS {
           code.push(quote! {
             if get_tag(#val0) == U60 && get_tag(#val1) == U60 {
-              #retx_ident = U6O(#op_u60_ident(#a, #b));
+              #retx_ident = U6O(u60::#op_ident(#a, #b));
               inc_cost(ctx.heap, ctx.tid);
             } else if get_tag(#val0) == F60 && get_tag(#val1) == F60 {
-              #retx_ident = U6O(#op_f60_ident(#a, #b));
+              #retx_ident = U6O(f60::#op_ident(#a, #b));
               inc_cost(ctx.heap, ctx.tid);
             } else {
               #body
@@ -711,11 +712,9 @@ fn build_rulebook(const_name: Ident, book: RuleBook, span: Span) -> syn::Result<
   // Creates all of the constants and respective ids.
   for (id, name) in itertools::sorted(book.id_to_name.iter()) {
     let identifier = syn::Ident::new(&build_name(name), span);
-    if id >= &runtime::PRECOMP_COUNT {
-      id_constants.push(quote! {
-        pub const #identifier : u64 = #id;
-      });
-    }
+    id_constants.push(quote! {
+      pub const #identifier : u64 = #id;
+    });
   }
 
   let mut constructors_constants = Vec::new();
@@ -776,6 +775,7 @@ fn build_rulebook(const_name: Ident, book: RuleBook, span: Span) -> syn::Result<
     use hvm::runtime::*;
     use hvm::runtime::base::*;
     use hvm::runtime::base::precomp::*;
+    use hvm::syntax::{u60, f60};
 
     #(#id_constants)*
 
