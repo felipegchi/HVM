@@ -1,29 +1,11 @@
-[package]
-name = "hvm"
-version = "1.0.1-beta"
-edition = "2021"
-description = "A massively parallel functional runtime."
-repository = "https://github.com/Kindelia/HVM"
-license = "MIT"
-keywords = ["functional", "language", "runtime", "compiler", "target"]
-categories = ["compilers"]
-
-[lib]
-test = true
-crate-type = ["cdylib", "rlib"]
-
-[[bin]]
-name = "hvm"
-test = false
+[workspace]
+members = [
+    "crates/hvm",
+    "crates/hvm-derive",
+    "crates/hvm-syntax",
+    "crates/hvm-parser",
+    "crates/hvm-compiler",
+]
 
 [profile.release]
 opt-level = 3
-
-[dependencies]
-sysinfo = "0.26.7"
-clap = { version = "3.1.8", features = ["derive"] }
-crossbeam = "0.8.2"
-highlight_error = "0.1.1"
-im = "15.1.0"
-instant = { version = "0.1", features = [ "wasm-bindgen", "inaccurate" ] }
-itertools = "0.10"
